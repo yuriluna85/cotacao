@@ -2,29 +2,29 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>DICOM v1.7 - Yuri Luna</title>
+    <title>DICOM v1.8 - Yuri Luna</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-indigo-950 min-h-screen flex items-center justify-center p-4 text-white">
+<body class="bg-zinc-950 min-h-screen flex items-center justify-center p-4 text-white font-mono">
 
-    <div class="fixed bottom-4 right-4 bg-indigo-500 text-white text-[10px] px-3 py-1 rounded-full shadow-lg font-bold">
-        BUILD: v1.7 (ULTRA-ROBUST)
+    <div class="fixed bottom-4 right-4 bg-orange-600 text-white text-[10px] px-3 py-1 rounded-full shadow-lg font-bold">
+        BUILD: v1.8 (ML ENGINE)
     </div>
 
-    <div class="bg-indigo-900 p-8 rounded-3xl shadow-2xl w-full max-w-md border-b-8 border-indigo-400">
-        <h1 class="text-3xl font-black mb-1 text-center italic text-indigo-300">DICOM <span class="text-white">v1.7</span></h1>
-        <p class="text-center text-indigo-400 text-[10px] mb-8 uppercase tracking-widest">Motor de Busca Reforçado</p>
+    <div class="bg-zinc-900 p-8 rounded-none border-2 border-orange-600 shadow-[10px_10px_0px_0px_rgba(234,88,12,1)] w-full max-w-md">
+        <h1 class="text-3xl font-black mb-1 text-center text-orange-500">DICOM <span class="text-white">v1.8</span></h1>
+        <p class="text-center text-zinc-500 text-[10px] mb-8 uppercase tracking-widest">Stable Search Engine</p>
         
         <div class="space-y-4">
-            <input type="text" id="item" placeholder="O que deseja cotar?" class="w-full bg-indigo-800 border-2 border-indigo-700 p-3 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none">
-            <input type="number" id="qtd" value="1" class="w-full bg-indigo-800 border-2 border-indigo-700 p-3 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none">
-            <input type="password" id="token" placeholder="Token PAT" class="w-full bg-indigo-800 border-2 border-indigo-700 p-3 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none">
+            <input type="text" id="item" placeholder="NOME DO PRODUTO" class="w-full bg-zinc-800 border-b-2 border-orange-600 p-3 outline-none focus:bg-zinc-700 transition-all">
+            <input type="number" id="qtd" value="1" class="w-full bg-zinc-800 border-b-2 border-orange-600 p-3 outline-none">
+            <input type="password" id="token" placeholder="GITHUB TOKEN" class="w-full bg-zinc-800 border-b-2 border-orange-600 p-3 outline-none">
             
-            <button onclick="enviar()" id="btn" class="w-full bg-indigo-500 text-white font-black p-4 rounded-xl hover:bg-indigo-400 transition-all uppercase">
-                Gerar Cotação v1.7
+            <button onclick="enviar()" id="btn" class="w-full bg-orange-600 text-white font-black p-4 hover:bg-orange-500 transition-all uppercase">
+                Executar Cotação v1.8
             </button>
         </div>
-        <div id="status" class="mt-8 text-xs text-center font-bold uppercase min-h-[20px]"></div>
+        <div id="status" class="mt-8 text-[10px] text-center font-bold uppercase min-h-[20px] text-zinc-400"></div>
     </div>
 
     <script>
@@ -35,9 +35,9 @@
             const status = document.getElementById('status');
             const btn = document.getElementById('btn');
 
-            if (!item || !token) { alert("Preencha os campos!"); return; }
+            if (!item || !token) { alert("PREENCHA OS CAMPOS!"); return; }
 
-            status.innerHTML = "<span class='animate-pulse'>🚀 ATIVANDO MOTOR v1.7...</span>";
+            status.innerHTML = "INICIANDO ENGINE MERCADO LIVRE v1.8...";
             btn.disabled = true;
 
             try {
@@ -48,13 +48,13 @@
                 });
 
                 if (response.ok) {
-                    status.innerHTML = "<span class='text-green-400'>✅ ENVIADO! VERIFIQUE O REPOSITÓRIO EM 2 MIN.</span>";
+                    status.innerHTML = "<span class='text-green-500'>COMANDO ENVIADO. AGUARDE O PDF NO REPOSITÓRIO.</span>";
                 } else {
                     const err = await response.json();
-                    status.innerHTML = `<span class='text-red-400'>❌ ERRO: ${err.message}</span>`;
+                    status.innerHTML = `<span class='text-red-500'>ERRO: ${err.message}</span>`;
                 }
             } catch (e) {
-                status.innerHTML = "❌ FALHA DE CONEXÃO";
+                status.innerHTML = "FALHA NA CONEXÃO";
             } finally {
                 btn.disabled = false;
             }
