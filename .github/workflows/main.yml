@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       item:
-        description: 'Descrição do Item'
+        description: 'Item'
         required: true
       quantidade:
-        description: 'Quantidade'
+        description: 'Qtd'
         required: true
         default: '1'
 
@@ -16,26 +16,22 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout Código
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Configurar Python
+      - name: Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Instalar Dependências
+      - name: Deps
         run: |
           pip install playwright fpdf2
           playwright install chromium
-
-      - name: Executar Bot
+      - name: Run
         run: python cotacao_institucional.py "${{ github.event.inputs.item }}" "${{ github.event.inputs.quantidade }}"
-
-      - name: Salvar PDF no Repositório
+      - name: Commit
         run: |
-          git config --global user.name "Robo DICOM"
+          git config --global user.name "Bot DICOM"
           git config --global user.email "actions@github.com"
           git add cotacao.pdf
-          git commit -m "Cotação BR: ${{ github.event.inputs.item }}" || echo "Sem alterações"
+          git commit -m "Update v1.7" || echo "Sem mudanças"
           git push
