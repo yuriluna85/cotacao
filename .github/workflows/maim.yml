@@ -1,0 +1,38 @@
+name: Sistema de Cotacao Automatizada
+on:
+  workflow_dispatch:
+    inputs:
+      item:
+        description: 'Descrição do Material/Item'
+        required: true
+        default: 'Cadeira de Escritório'
+      quantidade:
+        description: 'Quantidade Desejada'
+        required: true
+        default: '1'
+
+jobs:
+  gerar_relatorio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar Dependências e Navegador
+        run: |
+          pip install playwright fpdf2
+          playwright install chromium
+
+      - name: Executar Robô de Cotação
+        run: python cotacao_institucional.py "${{ github.event.inputs.item }}" "${{ github.event.inputs.quantidade }}"
+
+      - name: Disponibilizar Relatório PDF
+        uses: actions/upload-artifact@v3
+        with:
+          name: Mapa-de-Cotacao
+          path: cotacao.pdf
