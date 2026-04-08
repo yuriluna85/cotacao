@@ -3,11 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       item:
-        description: 'Descrição do Material/Item'
+        description: 'Descrição do Item'
         required: true
-        default: 'Cadeira de Escritório'
       quantidade:
-        description: 'Quantidade Desejada'
+        description: 'Quantidade'
         required: true
         default: '1'
 
@@ -15,7 +14,7 @@ jobs:
   gerar_relatorio:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do Código
+      - name: Checkout Código
         uses: actions/checkout@v3
 
       - name: Configurar Python
@@ -23,15 +22,15 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Instalar Dependências e Navegador
+      - name: Instalar Dependências
         run: |
           pip install playwright fpdf2
           playwright install chromium
 
-      - name: Executar Robô de Cotação
+      - name: Executar Bot
         run: python cotacao_institucional.py "${{ github.event.inputs.item }}" "${{ github.event.inputs.quantidade }}"
 
-      - name: Disponibilizar Relatório PDF
+      - name: Disponibilizar PDF
         uses: actions/upload-artifact@v3
         with:
           name: Mapa-de-Cotacao
