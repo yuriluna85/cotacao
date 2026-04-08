@@ -14,23 +14,23 @@ jobs:
   gerar_relatorio:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Código
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Configurar Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Instalar Dependências
+      - name: Install Libs
         run: |
           pip install playwright fpdf2
           playwright install chromium
 
-      - name: Executar Bot
+      - name: Run Bot
         run: python cotacao_institucional.py "${{ github.event.inputs.item }}" "${{ github.event.inputs.quantidade }}"
 
-      - name: Disponibilizar PDF
+      - name: Upload PDF
         uses: actions/upload-artifact@v3
         with:
           name: Mapa-de-Cotacao
