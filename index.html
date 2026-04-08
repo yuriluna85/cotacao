@@ -7,32 +7,40 @@
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-green-600">
-        <h1 class="text-2xl font-extrabold text-slate-800 mb-2 text-center">Cotação DICOM</h1>
-        <p class="text-center text-slate-500 text-xs mb-8">IF Baiano - Automação de Processos</p>
+    <div class="fixed bottom-4 right-4 bg-slate-800 text-white text-[10px] px-3 py-1 rounded-full shadow-lg border border-slate-600 opacity-80">
+        Build: 2026.04.08-v1.1 (Final)
+    </div>
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-green-600 relative overflow-hidden">
+        <div class="absolute -top-1 -right-1 bg-green-500 text-[9px] text-white font-bold px-4 py-1 rotate-45">
+            NOVO
+        </div>
+
+        <h1 class="text-2xl font-extrabold text-slate-800 mb-1 text-center">Cotação DICOM</h1>
+        <p class="text-center text-slate-500 text-[10px] mb-8 uppercase tracking-widest">yuriluna85 / IF Baiano</p>
         
         <div class="space-y-5">
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase">Item para Pesquisa</label>
-                <input type="text" id="item" placeholder="Ex: Drone DJI Mavic 3" class="w-full border-2 border-slate-200 p-2 rounded-lg mt-1 focus:border-green-500 outline-none">
+                <input type="text" id="item" placeholder="Ex: Drone DJI Mavic 3" class="w-full border-2 border-slate-200 p-2 rounded-lg mt-1 focus:border-green-500 outline-none transition-all">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase">Quantidade</label>
-                <input type="number" id="qtd" value="1" min="1" class="w-full border-2 border-slate-200 p-2 rounded-lg mt-1 focus:border-green-500 outline-none">
+                <input type="number" id="qtd" value="1" min="1" class="w-full border-2 border-slate-200 p-2 rounded-lg mt-1 focus:border-green-500 outline-none transition-all">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-red-600 uppercase">Seu Token GitHub</label>
-                <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx" class="w-full border-2 border-red-100 p-2 rounded-lg mt-1 focus:border-red-500 outline-none">
+                <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx" class="w-full border-2 border-red-500/20 p-2 rounded-lg mt-1 focus:border-red-500 outline-none">
             </div>
 
-            <button onclick="enviar()" id="btn" class="w-full bg-green-600 text-white font-bold p-3 rounded-lg hover:bg-green-700 shadow-lg active:scale-95 transition">
+            <button onclick="enviar()" id="btn" class="w-full bg-green-600 text-white font-bold p-3 rounded-lg hover:bg-green-700 shadow-lg active:scale-95 transition-all">
                 GERAR MAPA DE PREÇOS
             </button>
         </div>
 
-        <div id="status" class="mt-6 text-sm text-center font-semibold"></div>
+        <div id="status" class="mt-6 text-sm text-center font-semibold min-h-[40px]"></div>
     </div>
 
     <script>
@@ -43,13 +51,15 @@
             const status = document.getElementById('status');
             const btn = document.getElementById('btn');
 
-            // Configuração Yuri Luna
             const usuario = "yuriluna85"; 
             const repositorio = "cotacao";
 
-            if (!item || !token) { alert("Preencha o item e o Token!"); return; }
+            if (!item || !token) { 
+                status.innerHTML = "<span class='text-amber-600'>⚠️ Preencha o item e o Token!</span>";
+                return; 
+            }
 
-            status.innerText = "⏳ Acionando robô no GitHub...";
+            status.innerHTML = "⏳ <span class='animate-pulse'>Acionando robô no GitHub...</span>";
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
@@ -64,7 +74,7 @@
                 });
 
                 if (response.ok) {
-                    status.innerHTML = "<span class='text-green-600'>🚀 Robô em ação! O PDF estará disponível no repositório em aproximadamente 2 minutos.</span>";
+                    status.innerHTML = "<span class='text-green-600'>🚀 Sucesso! Robô em execução.<br><a href='https://github.com/yuriluna85/cotacao/actions' target='_blank' class='underline text-blue-500'>Ver progresso no GitHub</a></span>";
                 } else {
                     const err = await response.json();
                     throw new Error(err.message);
