@@ -34,11 +34,11 @@ class CotadorBot:
             except:
                 pass
 
-            # Extrai o preço e limpa a formatação
+            # Extrai o preço
             preco_texto = await page.inner_text(seletores['preco'])
             preco_val = float(re.sub(r'[^\d,]', '', preco_texto).replace(',', '.'))
             
-            # Regra de negócio: Verificar se é venda direta
+            # Verifica se é venda direta
             is_proprio = site_nome.lower() in vendedor_txt.lower()
             
             cnpjs = {
@@ -50,7 +50,7 @@ class CotadorBot:
             self.resultados.append({
                 "site": site_nome,
                 "vendedor": vendedor_txt.strip(),
-                "cnpj": cnpjs.get(site_nome) if is_proprio else "Marketplace (Verificar Link)",
+                "cnpj": cnpjs.get(site_nome) if is_proprio else "Consulte o Link",
                 "preco_un": preco_val,
                 "link": page.url,
                 "proprio": is_proprio,
@@ -69,14 +69,13 @@ class CotadorBot:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
             )
 
-            # Mapeamento de seletores para as lojas
             tarefas = [
                 self.buscar_loja(context, "https://www.amazon.com.br/s?k=", "Amazon", {
                     'item': "h2 a", 
                     'preco': ".a-price-whole", 
                     'vendedor': "#tabular-buybox-container"
                 }),
-                self.buscar_lo_ja(context, "https://www.magazineluiza.com.br/busca/", "Magalu", {
+                self.buscar_loja(context, "https://www.magazineluiza.com.br/busca/", "Magalu", {
                     'item': "h3[data-testid='product-title']", 
                     'preco': "p[data-testid='price-value']", 
                     'vendedor': "[data-testid='seller-info-container']"
@@ -91,52 +90,42 @@ class CotadorBot:
         pdf.add_page()
         pdf.set_font("Arial", "B", 14)
         
-        # Título do Mapa Comparativo
-        pdf.cell(190, 10, "MAPA COMPARATIVO DE PREÇOS OFICIAL", ln=True, align='C')
+        pdf.cell(190, 10, "MAPA COMPARATIVO DE PREÇOS", ln=True, align='C')
         pdf.set_font("Arial", "", 10)
         pdf.cell(190, 7, f"Item: {self.item.upper()}", ln=True)
         pdf.cell(190, 7, f"Quantidade: {self.quantidade} | Destino: CEP {CEP_DESTINO}", ln=True)
-        pdf.cell(190, 7, f"Data da Consulta: {datetime.now().strftime('%d/%m/%Y')}", ln=True)
+        pdf.cell(190, 7, f"Data: {datetime.now().strftime('%d/%m/%Y')}", ln=True)
         pdf.ln(5)
 
-        # Cabeçalho da Tabela
         pdf.set_fill_color(240, 240, 240)
         pdf.set_font("Arial", "B", 8)
         pdf.cell(35, 10, "Loja", 1, 0, 'C', True)
         pdf.cell(30, 10, "CNPJ", 1, 0, 'C', True)
-        pdf.cell(30, 10, "V. Unitário", 1, 0, 'C', True)
-        pdf.cell(30, 10, "V. Total", 1, 0, 'C', True)
-        pdf.cell(65, 10, "Status de Venda", 1, 1, 'C', True)
+        pdf.cell(30, 10, "Unitário", 1, 0, 'C', True)
+        pdf.cell(30, 10, "Subtotal", 1, 0, 'C', True)
+        pdf.cell(65, 10, "Vendedor", 1, 1, 'C', True)
 
         pdf.set_font("Arial", "", 7)
         soma_precos = 0
-        
         for res in self.resultados:
-            total_item = res['preco_un'] * self.quantidade
+            total = res['preco_un'] * self.quantidade
             soma_precos += res['preco_un']
-            status = "Venda Direta (Oficial)" if res['proprio'] else f"Marketplace: {res['vendedor'][:25]}"
-            
             pdf.cell(35, 10, res['site'], 1)
             pdf.cell(30, 10, res['cnpj'], 1, 0, 'C')
             pdf.cell(30, 10, f"R$ {res['preco_un']:,.2f}", 1, 0, 'C')
-            pdf.cell(30, 10, f"R$ {total_item:,.2f}", 1, 0, 'C')
-            pdf.cell(65, 10, status, 1, 1, 'C')
+            pdf.cell(30, 10, f"R$ {total:,.2f}", 1, 0, 'C')
+            pdf.cell(65, 10, res['vendedor'][:40], 1, 1)
 
-        # Lógica de Média e Justificativa
         if len(self.resultados) < 3:
             media = soma_precos / len(self.resultados) if self.resultados else 0
             pdf.ln(5)
             pdf.set_font("Arial", "B", 9)
             pdf.set_text_color(200, 0, 0)
-            pdf.multi_cell(190, 6, f"OBSERVAÇÃO: Foram obtidas {len(self.resultados)} cotações válidas. "
-                                   f"Média unitária: R$ {media:,.2f}. Justificativa: Itens indisponíveis para "
-                                   "venda direta nos demais domínios monitorados nesta data.")
+            pdf.multi_cell(190, 6, f"OBSERVAÇÃO: Apenas {len(self.resultados)} cotações válidas encontradas. Média: R$ {media:,.2f}.")
 
         pdf.output("cotacao.pdf")
 
 if __name__ == "__main__":
-    item_cli = sys.argv[1] if len(sys.argv) > 1 else "Papel A4"
-    qtd_cli = sys.argv[2] if len(sys.argv) > 2 else "1"
-    bot = CotadorBot(item_cli, qtd_cli)
+    bot = CotadorBot(sys.argv[1], sys.argv[2])
     asyncio.run(bot.executar())
     bot.gerar_pdf()
