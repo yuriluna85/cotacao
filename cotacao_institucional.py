@@ -17,28 +17,28 @@ class CotadorBot:
     async def buscar_loja(self, context, url_base, site_nome, seletores):
         page = await context.new_page()
         try:
-            # Acessa a busca
+            # Acessa a busca do site
             await page.goto(url_base + self.item.replace(" ", "+"), timeout=60000)
             
-            # Tenta localizar o primeiro produto da lista
+            # Localiza e clica no primeiro produto
             await page.wait_for_selector(seletores['item'], timeout=15000)
             await page.click(seletores['item'])
             
-            # Aguarda carregar a página do produto
+            # Aguarda o carregamento da página do produto
             await page.wait_for_load_state("networkidle")
 
-            # Extração de dados
+            # Identifica o vendedor
             vendedor_txt = "Não identificado"
             try:
                 vendedor_txt = await page.inner_text(seletores['vendedor'])
             except:
                 pass
 
+            # Extrai o preço e limpa a formatação
             preco_texto = await page.inner_text(seletores['preco'])
-            # Limpa o preço (ex: R$ 1.200,50 -> 1200.50)
             preco_val = float(re.sub(r'[^\d,]', '', preco_texto).replace(',', '.'))
             
-            # Define se é venda direta (Institucional)
+            # Regra de negócio: Verificar se é venda direta
             is_proprio = site_nome.lower() in vendedor_txt.lower()
             
             cnpjs = {
@@ -50,7 +50,7 @@ class CotadorBot:
             self.resultados.append({
                 "site": site_nome,
                 "vendedor": vendedor_txt.strip(),
-                "cnpj": cnpjs.get(site_nome) if is_proprio else "Marketplace (Verificar)",
+                "cnpj": cnpjs.get(site_nome) if is_proprio else "Marketplace (Verificar Link)",
                 "preco_un": preco_val,
                 "link": page.url,
                 "proprio": is_proprio,
@@ -69,22 +69,17 @@ class CotadorBot:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
             )
 
-            # Mapeamento de seletores (ajustados para as versões atuais dos sites)
+            # Mapeamento de seletores para as lojas
             tarefas = [
                 self.buscar_loja(context, "https://www.amazon.com.br/s?k=", "Amazon", {
                     'item': "h2 a", 
                     'preco': ".a-price-whole", 
                     'vendedor': "#tabular-buybox-container"
                 }),
-                self.buscar_loja(context, "https://www.magazineluiza.com.br/busca/", "Magalu", {
+                self.buscar_lo_ja(context, "https://www.magazineluiza.com.br/busca/", "Magalu", {
                     'item': "h3[data-testid='product-title']", 
                     'preco': "p[data-testid='price-value']", 
                     'vendedor': "[data-testid='seller-info-container']"
-                }),
-                self.buscar_loja(context, "https://lista.mercadolivre.com.br/", "Mercado Livre", {
-                    'item': ".ui-search-item__title", 
-                    'preco': ".poly-price__current .and-fraction", 
-                    'vendedor': ".ui-pdp-seller__link-trigger"
                 })
             ]
             
@@ -96,8 +91,8 @@ class CotadorBot:
         pdf.add_page()
         pdf.set_font("Arial", "B", 14)
         
-        # Título
-        pdf.cell(190, 10, "MAPA COMPARATIVO DE PREÇOS", ln=True, align='C')
+        # Título do Mapa Comparativo
+        pdf.cell(190, 10, "MAPA COMPARATIVO DE PREÇOS OFICIAL", ln=True, align='C')
         pdf.set_font("Arial", "", 10)
         pdf.cell(190, 7, f"Item: {self.item.upper()}", ln=True)
         pdf.cell(190, 7, f"Quantidade: {self.quantidade} | Destino: CEP {CEP_DESTINO}", ln=True)
@@ -119,7 +114,7 @@ class CotadorBot:
         for res in self.resultados:
             total_item = res['preco_un'] * self.quantidade
             soma_precos += res['preco_un']
-            status = "Venda Direta (Oficial)" if res['proprio'] else f"Mktplace: {res['vendedor'][:25]}"
+            status = "Venda Direta (Oficial)" if res['proprio'] else f"Marketplace: {res['vendedor'][:25]}"
             
             pdf.cell(35, 10, res['site'], 1)
             pdf.cell(30, 10, res['cnpj'], 1, 0, 'C')
@@ -127,23 +122,21 @@ class CotadorBot:
             pdf.cell(30, 10, f"R$ {total_item:,.2f}", 1, 0, 'C')
             pdf.cell(65, 10, status, 1, 1, 'C')
 
-        # Lógica de Média e Justificativa se faltar site
+        # Lógica de Média e Justificativa
         if len(self.resultados) < 3:
             media = soma_precos / len(self.resultados) if self.resultados else 0
             pdf.ln(5)
             pdf.set_font("Arial", "B", 9)
             pdf.set_text_color(200, 0, 0)
-            pdf.multi_cell(190, 6, f"OBSERVAÇÃO: Foram obtidas apenas {len(self.resultados)} cotações. "
-                                   f"Valor médio unitário apurado: R$ {media:,.2f}. "
-                                   "Justificativa: Item indisponível para venda direta nos demais domínios monitorados.")
+            pdf.multi_cell(190, 6, f"OBSERVAÇÃO: Foram obtidas {len(self.resultados)} cotações válidas. "
+                                   f"Média unitária: R$ {media:,.2f}. Justificativa: Itens indisponíveis para "
+                                   "venda direta nos demais domínios monitorados nesta data.")
 
         pdf.output("cotacao.pdf")
-        print("Arquivo cotacao.pdf gerado com sucesso.")
 
 if __name__ == "__main__":
-    nome_do_item = sys.argv[1] if len(sys.argv) > 1 else "Papel A4 Chamex"
-    quantidade_item = sys.argv[2] if len(sys.argv) > 2 else "1"
-    
-    bot = CotadorBot(nome_do_item, quantidade_item)
+    item_cli = sys.argv[1] if len(sys.argv) > 1 else "Papel A4"
+    qtd_cli = sys.argv[2] if len(sys.argv) > 2 else "1"
+    bot = CotadorBot(item_cli, qtd_cli)
     asyncio.run(bot.executar())
     bot.gerar_pdf()
