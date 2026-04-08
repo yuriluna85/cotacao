@@ -11,66 +11,45 @@ class CotadorBot:
         self.quantidade = int(quantidade)
         self.resultados = []
 
-    async def buscar_br(self, context):
+    async def buscar_ml(self, context):
         page = await context.new_page()
         try:
-            # Busca no Google Shopping com parâmetros de localização brasileiros
-            url = f"https://www.google.com.br/search?tbm=shop&q={self.item.replace(' ', '+')}&hl=pt-BR&gl=br"
-            print(f"Navegando para: {url}")
+            # Mercado Livre é muito mais estável para automação sem bloqueio
+            url = f"https://lista.mercadolivre.com.br/{self.item.replace(' ', '-')}"
+            print(f"Buscando no Mercado Livre: {url}")
             
-            await page.goto(url, timeout=60000, wait_until="networkidle")
+            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             
-            # Rola a página para carregar resultados preguiçosos (lazy load)
-            await page.mouse.wheel(0, 2000)
-            await asyncio.sleep(3)
+            # Localiza os cards de produtos
+            await page.wait_for_selector('.ui-search-result__wrapper', timeout=20000)
+            items = await page.query_selector_all('.ui-search-result__wrapper')
 
-            # Captura todos os blocos que pareçam um produto (seletores variados para redundância)
-            cards = await page.query_selector_all('div[data-docid], .sh-dgr__content, .sh-prc__content')
-            
-            print(f"Cards encontrados: {len(cards)}")
-
-            for card in cards:
+            for item in items:
                 if len(self.resultados) >= 3: break
                 
-                texto_completo = await card.inner_text()
-                # Procura o padrão de preço brasileiro: R$ 1.234,56
-                match_preco = re.search(r'R\$\s?(\d+[\d\.,]*)', texto_completo)
-                
-                if match_preco:
-                    preco_raw = match_preco.group(1)
-                    preco_val = float(preco_raw.replace('.', '').replace(',', '.'))
-                    
-                    # Tenta pegar o nome no H3 ou no primeiro link
-                    nome_el = await card.query_selector('h3')
+                try:
+                    nome_el = await item.query_selector('.ui-search-item__title')
                     nome = await nome_el.inner_text() if nome_el else "Produto"
                     
-                    # Tenta pegar a loja (geralmente texto após o preço ou em spans específicos)
-                    loja = "Loja não identificada"
-                    vendedores = ["Amazon", "Magalu", "Magazine Luiza", "Mercado Livre", "Casas Bahia", "Shopee", "Kabum"]
-                    for v in vendedores:
-                        if v.lower() in texto_completo.lower():
-                            loja = v
-                            break
+                    preco_el = await item.query_selector('.poly-price__current .and-fraction')
+                    preco_txt = await preco_el.inner_text() if preco_el else "0"
+                    preco_val = float(preco_txt.replace('.', '').replace(',', '.'))
                     
-                    link_el = await card.query_selector('a')
-                    href = await link_el.get_attribute('href') if link_el else ""
-                    link = "https://www.google.com.br" + href if href.startswith('/') else href
+                    link_el = await item.query_selector('a.ui-search-link')
+                    link = await link_el.get_attribute('href')
 
-                    # CNPJ Automático para os grandes
-                    cnpjs = {"amazon": "15.436.940/0001-03", "magalu": "47.960.950/0001-21", "mercado": "03.007.331/0001-41"}
-                    cnpj_final = "Consultar Link"
-                    for k, v in cnpjs.items():
-                        if k in loja.lower(): cnpj_final = v
-
+                    # Para o Mercado Livre, usamos o CNPJ da matriz para cotações oficiais
                     self.resultados.append({
-                        "site": loja,
-                        "cnpj": cnpj_final,
+                        "site": "Mercado Livre",
+                        "cnpj": "03.007.331/0001-41",
                         "preco_un": preco_val,
                         "link": link,
-                        "vendedor": "Venda Direta" if cnpj_final != "Consultar Link" else "Marketplace"
+                        "vendedor": "Venda Direta / Full"
                     })
+                except:
+                    continue
         except Exception as e:
-            print(f"Erro: {e}")
+            print(f"Erro na coleta: {e}")
         finally:
             await page.close()
 
@@ -81,14 +60,14 @@ class CotadorBot:
                 viewport={'width': 1280, 'height': 800},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
             )
-            await self.buscar_br(context)
+            await self.buscar_ml(context)
             await browser.close()
 
     def gerar_pdf(self):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(190, 10, "MAPA DE PRECOS - DICOM v1.7", ln=True, align='C')
+        pdf.cell(190, 10, "MAPA DE PRECOS - DICOM v1.8", ln=True, align='C')
         pdf.set_font("Helvetica", "", 10)
         pdf.cell(190, 7, f"ITEM: {self.item.upper()} | QTD: {self.quantidade}", ln=True)
         pdf.cell(190, 7, f"DATA: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True)
@@ -98,9 +77,9 @@ class CotadorBot:
         pdf.set_font("Helvetica", "B", 8)
         pdf.cell(45, 10, "Fornecedor", 1, 0, 'C', True)
         pdf.cell(30, 10, "CNPJ", 1, 0, 'C', True)
-        pdf.cell(30, 10, "Unitario", 1, 0, 'C', True)
+        pdf.cell(30, 10, "Unitário", 1, 0, 'C', True)
         pdf.cell(30, 10, "Total", 1, 0, 'C', True)
-        pdf.cell(55, 10, "Status / Link", 1, 1, 'C', True)
+        pdf.cell(55, 10, "Link", 1, 1, 'C', True)
 
         pdf.set_font("Helvetica", "", 7)
         soma = 0
@@ -111,15 +90,15 @@ class CotadorBot:
             pdf.cell(30, 10, res['cnpj'], 1, 0, 'C')
             pdf.cell(30, 10, f"R$ {res['preco_un']:,.2f}", 1, 0, 'C')
             pdf.cell(30, 10, f"R$ {total:,.2f}", 1, 0, 'C')
-            pdf.cell(55, 10, res['vendedor'], 1, 1, 'C', link=res['link'])
+            pdf.cell(55, 10, "Clique para Abrir", 1, 1, 'C', link=res['link'])
 
         if not self.resultados:
             pdf.set_text_color(255, 0, 0)
-            pdf.multi_cell(190, 10, "ALERTA: O sistema de busca automatica nao retornou dados. Tente pesquisar por um termo mais genérico.")
+            pdf.multi_cell(190, 10, "ERRO: Os sites de busca bloquearam o acesso automatizado. Tente novamente em instantes.")
         
         pdf.output("cotacao.pdf")
 
 if __name__ == "__main__":
-    bot = CotadorBot(sys.argv[1] if len(sys.argv) > 1 else "Item", int(sys.argv[2]) if len(sys.argv) > 2 else 1)
+    bot = CotadorBot(sys.argv[1], int(sys.argv[2]))
     asyncio.run(bot.executar())
     bot.gerar_pdf()
